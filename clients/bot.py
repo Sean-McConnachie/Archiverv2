@@ -2,7 +2,7 @@ import discord
 from simplicity.json_handler import jLoad
 from discord.ext import commands
 from database.create_db import createDB
-from cogs.prettyEmbed import prettyEmbed
+from cogs.embeds.prettyEmbed import prettyEmbed
 from cogs.modals.create_modal import createModal
 from cogs.modals.search_modal import searchModal
 

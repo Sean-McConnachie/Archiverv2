@@ -2,7 +2,7 @@ import discord
 import numpy as np
 from fuzzywuzzy import process
 from simplicity.json_handler import jLoad
-from cogs.prettyEmbed import prettyEmbed
+from cogs.embeds.prettyEmbed import prettyEmbed
 from table2ascii import table2ascii as t2a, PresetStyle
 
 
