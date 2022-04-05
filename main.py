@@ -1,10 +1,9 @@
 import os
 import asyncio
-import time
 
 import asyncpg
 import discord
-from json_handler import jLoad
+from simplicity.json_handler import jLoad
 from clients.bot import CustomClient
 
 # TODO: create auto delete
@@ -13,7 +12,7 @@ from clients.bot import CustomClient
 # TODO: is_tutor not working
 
 # import config
-CONFIG = jLoad('config.json')
+CONFIG = jLoad('static_files/config.json')
 
 
 async def run_bot():

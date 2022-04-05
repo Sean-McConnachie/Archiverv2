@@ -1,6 +1,6 @@
 import discord
 import datetime as dt
-from json_handler import *
+from simplicity.json_handler import *
 
 
 class prettyEmbed(discord.Embed):

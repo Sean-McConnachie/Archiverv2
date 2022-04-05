@@ -2,7 +2,7 @@ import string
 import discord
 import datetime as dt
 from fuzzywuzzy import process
-from json_handler import jLoad
+from simplicity.json_handler import jLoad
 from cogs.prettyEmbed import prettyEmbed
 
 

@@ -1,0 +1,40 @@
+{
+  "db": {
+    "database": "archiver",
+    "user": "postgres",
+    "password": "12341234",
+    "host": "127.0.0.1",
+    "port": "5432"
+  },
+
+  "application": {
+    "id": 951620842540892160,
+    "key": "819ea06648348894bc98e3e547340b8cccb2a88c4436a1a5924248c31780a617",
+    "token": "OTUxNjIwODQyNTQwODkyMTYw.YiqH-Q.BCzgFp6V9NsBTDygkVT33-_n-mQ",
+    "prefix": "!",
+    "cogs": [
+      "cogs.help",
+      "cogs.logmessages"
+    ],
+    "active_auto_delete": 259200,
+    "archive_auto_delete": 10800
+  },
+
+  "server_data": {
+    "guild_id": 951620589297205288,
+    "archiver_channel_id": 951628135147929613,
+
+
+    "create_archive_emoji": "\uD83D\uDD28",
+    "search_archive_emoji": "\uD83D\uDDC3",
+    "upvote_emoji": "\uD83D\uDC4D",
+    "downvote_emoji": "\uD83D\uDC4E",
+    "removevote_emoji": "\uD83D\uDED1",
+    "colors": {
+      "search": "3CB371",
+      "creator_embed": "BBD8B3",
+      "tutor_embed": "BBD8B3",
+      "user_embed": "FA7E61"
+    }
+  }
+}

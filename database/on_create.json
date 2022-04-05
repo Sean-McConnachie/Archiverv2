@@ -1,0 +1,65 @@
+{
+  "role_data": [
+    {
+      "role_id": 951628833549856788,
+      "is_admin": true,
+      "is_moderator": false,
+      "is_tutor": false,
+      "is_class": false
+    },
+    {
+      "role_id": 951628876180766780,
+      "is_admin": false,
+      "is_moderator": true,
+      "is_tutor": false,
+      "is_class": false
+    },
+    {
+      "role_id": 951629019147800586,
+      "is_admin": false,
+      "is_moderator": false,
+      "is_tutor": true,
+      "is_class": false
+    },
+    {
+      "role_id": 951648930809135155,
+      "is_admin": false,
+      "is_moderator": false,
+      "is_tutor": false,
+      "is_class": true
+    },
+    {
+      "role_id": 951649023276773377,
+      "is_admin": false,
+      "is_moderator": false,
+      "is_tutor": false,
+      "is_class": true
+    }
+  ],
+  "category_data": [
+    {
+      "category_id": 951681934868746341,
+      "category_name": "COMPSCI 110",
+      "class_role_id": 951648930809135155,
+      "active_category": true
+    },
+    {
+      "category_id": 951681985699520583,
+      "category_name": "COMPSCI 120",
+      "class_role_id": 951649023276773377,
+      "active_category": true
+    },
+    {
+      "category_id": 951681934868746341,
+      "category_name": "COMPSCI 110",
+      "class_role_id": 951648930809135155,
+      "active_category": false
+    },
+    {
+      "category_id": 951681985699520583,
+      "category_name": "COMPSCI 120",
+      "class_role_id": 951649023276773377,
+      "active_category": false
+    }
+  ]
+}

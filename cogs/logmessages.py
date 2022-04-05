@@ -5,7 +5,7 @@ import datetime as dt
 from discord.ext import commands
 from cogs.prettyEmbed import prettyEmbed
 from HTMLGenerator.generator import make_template
-from json_handler import jLoad, jWrite_ifnotexists
+from simplicity.json_handler import jLoad, jWrite_ifnotexists
 
 
 CONFIG = jLoad('config.json')
@@ -162,7 +162,7 @@ class messageEmbed(discord.Embed):
         self.set_footer(text=f"Message {message_c[0]+1}/{message_c[1]}")
 
 
-class logCog(commands.Cog, name='Logging module'):
+class logMsgsCog(commands.Cog, name='Logging module'):
     """
     This class simply inserts all messages sent in active channels (in active categories) to the threads database.
     We must listen for:
@@ -457,4 +457,4 @@ class logCog(commands.Cog, name='Logging module'):
 
 
 async def setup(bot):
-    await bot.add_cog(logCog(bot))
+    await bot.add_cog(logMsgsCog(bot))
