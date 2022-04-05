@@ -19,8 +19,8 @@ async def createFromSearch(bot, message: discord.Message):
     try:
         topic_id = int(message.content.split(' ')[0])
         topic_name = " ".join(message.content.split(' ')[1:])
-        query = "SELECT * FROM topics WHERE topic_id = $1 AND topic_name = $2 AND dt_closed IS NOT NULL;"
-        resp = await bot.db.fetch(query, topic_id, topic_name)
+        query = "SELECT * FROM topics WHERE topic_id = $1 AND topic_name = $2 AND dt_closed < $3;"
+        resp = await bot.db.fetch(query, topic_id, topic_name, dt.datetime.now())
         if isinstance(resp, list) and len(resp) == 1:
             resp = resp[0]
         else:
@@ -47,16 +47,24 @@ async def createFromSearch(bot, message: discord.Message):
         # create the channel
 
         # create channel and send basic info to channel + insert archive_channel_id into database
-        for roles in CONFIG["class_roles"]:
-            if roles["display_name"] == resp["class_name"]:
-                table_name = roles["table_role_name"]
-        for category in CONFIG["application"]["server_data"]["archived_channels_folder_id"]:
-            if category["table_role_name"] == table_name:
-                archive_category_id = category["category_id"]
+        role_id = discord.utils.get(message.guild.roles, id=resp["role_id"]).id
+        query = "SELECT category_id FROM category_data WHERE class_role_id = $1"
+        archive_category_id = await bot.db.fetchval(query, role_id)
+
         archive_category = discord.utils.get(message.guild.channels, id=archive_category_id)
 
         # check if this topic already exists
         all_ids = [channel.id for channel in archive_category.channels]
+        if archive_category_id in all_ids:
+            # topic exists
+            embed = prettyEmbed(
+                title=f"This topic is already open!",
+                description=f"Go to <#{archive_category_id}>",
+                color=0x00FF00,
+                creator=discord.utils.get(message.guild.members, id=355832318532780062)
+            )
+            return
+
         for channel in archive_category.channels:
             if channel.id == resp["archive_channel_id"]:
                 embed = prettyEmbed(
@@ -74,8 +82,8 @@ async def createFromSearch(bot, message: discord.Message):
         if len(archive_category.channels) >= 50:
             # too many active topics - remove oldest channel, archive it
             old_channel = archive_category.channels[-1]
-            query = "UPDATE topics SET archive_channel_id = $1, archive_dt_created = $2, archive_creator_id = $4 WHERE archive_channel_id = $5;"
-            await bot.client.db.execute(query, None, None, None, old_channel.id)
+            query = "UPDATE topics SET archive_channel_id = $1, archive_dt_close = $2, archive_creator_id = $4 WHERE archive_channel_id = $5;"
+            await bot.client.db.execute(query, None, dt.datetime.now(), None, old_channel.id)
             embed = prettyEmbed(
                 title=f"Deleting the oldest channel",
                 description=f"The category is full. Deleting {old_channel.name} to create space for your topic.",
@@ -88,8 +96,8 @@ async def createFromSearch(bot, message: discord.Message):
 
         # create the new topic channel
         new_channel = await archive_category.create_text_channel(name=resp["channel_name"])
-        query = "UPDATE topics SET archive_channel_id = $1, archive_dt_created = $2, archive_creator_id = $3 WHERE topic_id = $4;"
-        await bot.db.execute(query, new_channel.id, dt.datetime.now(), message.author.id, resp["topic_id"])
+        query = "UPDATE topics SET archive_channel_id = $1, archive_dt_close = $2, archive_creator_id = $3 WHERE topic_id = $4;"
+        await bot.db.execute(query, new_channel.id, dt.datetime.now()+dt.timedelta(seconds=CONFIG['application']['archive_auto_delete']), message.author.id, resp["topic_id"])
 
         basic_content = f"""
                 ***{resp["class_name"]}***
@@ -97,6 +105,8 @@ async def createFromSearch(bot, message: discord.Message):
                 {resp["topic_description"]}
 
                 Tags: *{", ".join(resp["topic_tags"])}*
+                
+                Closes at: *{(dt.datetime.now()+dt.timedelta(seconds=CONFIG['application']['archive_auto_delete'])).strftime("%H:%M %d/%m/%Y")}*
 
                 **Upvotes:** {{0}} | **Downvotes:** {{1}}
                 """
@@ -117,7 +127,7 @@ async def createFromSearch(bot, message: discord.Message):
             author=discord.utils.get(message.guild.members, id=resp["creator_id"]),
             creator=discord.utils.get(message.guild.members, id=355832318532780062)
         )
-        view = newChannelView(embed=embed, basic_content=basic_content)
+        view = newChannelView(embed=embed, basic_content=basic_content, Active=False)
         msg1 = await new_channel.send(embed=embed, view=view)
 
         # now send all of the messages from the old thread
@@ -126,7 +136,7 @@ async def createFromSearch(bot, message: discord.Message):
         old_messages = []
         json_messages = []
         senders = []
-        colors = CONFIG["application"]["server_data"]["colors"]
+        colors = CONFIG["server_data"]["colors"]
         for msg in temp:
             o_dict = {
                 "message_id": msg["message_id"],

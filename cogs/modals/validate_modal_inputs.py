@@ -20,53 +20,48 @@ def validateModal(data: dict, classes: list) -> dict:
     return: Validated: Returns a dict with {"data": ...} if no errors and data is safe
     """
     # topic_name, description, class_option, topic_tags possible keys
-    errors = {}
+    Validated = {}
+    error_tags = []
+    overall_error = False
+    error_in = "You inputted bad data into these field(s):\n"
 
     for key, item in data.items():
         if key == "topic_name":
-            # verify topic_name
-            tname_resp = cleanTopic(data['topic_name'])
-            errors["topic_name"] = tname_resp["error"]
-        elif key == "class_option":
-            # verify class_option
-            coption_resp = verifyClass(data['class_option'], classes=classes)
-            errors["class_option"] = coption_resp["error"]
-        elif key == "topic_tags":
-            # verify topic_tags
-            ttag_resp = cleanTags(data['topic_tags'])
-            errors["topic_tags"] = ttag_resp["error"]
-        elif key == "description":
-            errors["description"] = None
-
-    overall_error = False
-
-    error_in = "You inputted bad data into these field(s):\n"
-    for key in errors.keys():
-        value = errors[key]
-        if value is True:
-            overall_error = True
-            if key == "topic_name":
+            temp = cleanTopic(name=data["topic_name"])
+            if temp["error"] is True:
+                error_tags.append("topic_name")
+                overall_error = True
                 error_in += " **- Topic name**\n"
-            elif key == "class_option":
+            else:
+                Validated["topic_name"] = temp["topic_name"]
+                Validated["channel_name"] = temp["channel_name"]
+        elif key == "class_option":
+            temp = verifyClass(class_option=data["class_option"], classes=classes)
+            if temp["error"] is True:
+                error_tags.append("class_option")
+                overall_error = True
                 error_in += " **- Class option**\n"
-            elif key == "topic_tags":
+                if "class_option" in temp.keys():
+                    Validated["class_option"] = temp["class_option"]
+            else:
+                Validated["class_option"] = temp["class_option"]
+        elif key == "topic_tags":
+            temp = cleanTags(tags=data["topic_tags"])
+            if temp["error"] is True:
+                error_tags.append("topic_tags")
+                overall_error = True
                 error_in += " **- Topic tags**\n"
+                if "topic_tags" in temp.keys():
+                    Validated["topic_tags"] = temp["topic_tags"]
+            else:
+                Validated["topic_tags"] = temp["topic_tags"]
+        elif key == "description":
+            Validated["description"] = data["description"]
     error_in += "\nPlease look above for more info on valid inputs."
 
     if overall_error:
-        Validated = {"error": error_in}
-    else:
-        Validated = {}
-        for key in errors.keys():
-            if key == "topic_name":
-                Validated[key] = tname_resp["topic_name"]
-                Validated["channel_name"] = tname_resp["channel_name"]
-            elif key == "description":
-                Validated[key] = data["description"]
-            elif key == "class_option":
-                Validated[key] = coption_resp["class_option"]
-            elif key == "topic_tags":
-                Validated[key] = ttag_resp["topic_tags"]
+        Validated["error"] = error_in
+        Validated["error_tags"] = error_tags
 
     return Validated
 
@@ -129,6 +124,12 @@ def cleanTopic(name: str) -> dict:
 
 
 def verifyClass(class_option: str, classes: list) -> dict:
+    if class_option == "":
+        return {
+            "error": True,
+            "class_option": None
+        }
+
     similarity = process.extractOne(query=class_option, choices=classes)
     if similarity:
         if similarity[1] >= 80:
@@ -144,6 +145,7 @@ def verifyClass(class_option: str, classes: list) -> dict:
 def cleanTags(tags: str) -> dict:
     if len(tags) == 0:
         return {
+            "topic_tags": None,
             "error": True
         }
     tags = tags.split(',')

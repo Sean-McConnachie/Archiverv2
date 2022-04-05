@@ -52,9 +52,10 @@ async def createFromNew(interaction: discord.Interaction, data: dict):
         "channel_name": data["channel_name"],
         "topic_description": data["description"],
         "class_name": data["class_option"],
+        "role_id": role_id,
         "topic_tags": data["topic_tags"],
         "dt_created": dt.datetime.now(),
-        "dt_closed": dt.datetime.now() + dt.timedelta(days=3),
+        "dt_closed": dt.datetime.now() + dt.timedelta(seconds=CONFIG['application']['active_auto_delete']),
         "creator_id": interaction.user.id
     }
 
@@ -96,13 +97,14 @@ async def createFromNew(interaction: discord.Interaction, data: dict):
         channel_name,
         topic_description,
         class_name,
+        role_id,
         topic_tags,
         dt_created,
         dt_closed,
         creator_id
     )
     VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
     )
     """
     await interaction.client.db.execute(query, *tuple(db_data.values()))

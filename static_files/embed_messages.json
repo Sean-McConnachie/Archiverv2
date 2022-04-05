@@ -61,5 +61,10 @@
     "title": "Reviving the dead topic",
     "description": "",
     "color": "00FF00"
+  },
+  "check_dms": {
+    "title": "Check your DMS to find the topic you want to reopen.\n\nOnce you've found the topic you like, type `<topic id> <topic name>` into this channel.",
+    "description": "",
+    "color": "00FF00"
   }
 }

@@ -15,6 +15,7 @@ async def createDB(conn):
         channel_name TEXT,
         topic_description TEXT,
         class_name TEXT,
+        role_id BIGINT,
         topic_tags TEXT[],
         dt_created TIMESTAMP,
         dt_closed TIMESTAMP,

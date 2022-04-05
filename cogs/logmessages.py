@@ -33,7 +33,10 @@ class logMsgsCog(commands.Cog, name='Logging module'):
 
         if resp is False:
             return False
-        return True
+        elif resp is None:
+            return False
+        else:
+            return True
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

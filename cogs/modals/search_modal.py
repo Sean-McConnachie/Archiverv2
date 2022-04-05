@@ -6,6 +6,7 @@ from cogs.modals.validate_modal_inputs import validateModal
 from simplicity.json_handler import jLoad
 from cogs.embeds.prettyEmbed import prettyEmbed
 from table2ascii import table2ascii as t2a, PresetStyle
+import datetime as dt
 
 
 CONFIG = jLoad('static_files/config.json')
@@ -106,30 +107,30 @@ class searchEmbedView(discord.ui.View):
         self.Embed = embed
 
     @discord.ui.button(style=discord.ButtonStyle.blurple, emoji="❌", custom_id="close_embed")
-    async def close_embed(self, button: discord.Button, interaction: discord.Interaction):
+    async def close_embed(self, interaction: discord.Interaction, button: discord.Button):
         await interaction.message.delete()
         await interaction.response.defer()
 
     @discord.ui.button(style=discord.ButtonStyle.blurple, emoji='⬅️', custom_id="previous_page")
-    async def previous_page(self, button, interaction: discord.Interaction):
+    async def previous_page(self, interaction: discord.Interaction, button: discord.Button):
         self.Embed.previous_page()
         await interaction.message.edit(content=self.Embed.description)
         await interaction.response.defer()
 
     @discord.ui.button(style=discord.ButtonStyle.blurple, emoji="➡️", custom_id="next_page")
-    async def next_page(self, button: discord.Button, interaction: discord.Interaction):
+    async def next_page(self, interaction: discord.Interaction, button: discord.Button):
         self.Embed.next_page()
         await interaction.message.edit(content=self.Embed.description)
         await interaction.response.defer()
 
     @discord.ui.button(label="Relevance", style=discord.ButtonStyle.secondary, custom_id="relevance_callback")
-    async def relevance_callback(self, button: discord.Button, interaction: discord.Interaction):
+    async def relevance_callback(self, interaction: discord.Interaction, button: discord.Button):
         self.Embed.relevanceSort()
         await interaction.message.edit(content=self.Embed.description)
         await interaction.response.defer()
 
     @discord.ui.button(label="Upvotes", style=discord.ButtonStyle.secondary, custom_id="upvotes_callback")
-    async def upvotes_callback(self, button: discord.Button, interaction: discord.Interaction):
+    async def upvotes_callback(self, interaction: discord.Interaction, button: discord.Button):
         self.Embed.upvotesSort()
         await interaction.message.edit(content=self.Embed.description)
         await interaction.response.defer()
@@ -143,18 +144,24 @@ class searchModal(discord.ui.Modal, title='Search for a topic'):
 
     async def get_results(self, data, interaction) -> list:
         resp = []
+
+        if "class_option" not in data.keys():
+            data["class_option"] = None
+        if "topic_tags" not in data.keys():
+            data["topic_tags"] = None
+
         if data["class_option"] is None and data["topic_tags"] is None:
-            query = "SELECT topic_id, topic_name, topic_tags, upvotes, downvotes FROM topics WHERE dt_closed IS NOT NULL;"
-            resp = await interaction.client.db.fetch(query)
+            query = "SELECT topic_id, topic_name, topic_tags, upvotes, downvotes FROM topics WHERE dt_closed < $1;"
+            resp = await interaction.client.db.fetch(query, dt.datetime.now())
         elif data["class_option"] is not None and data["topic_tags"] is not None:
-            query = "SELECT topic_id, topic_name, topic_tags, upvotes, downvotes FROM topics WHERE class_name = $1 AND topic_tags @> $2 AND dt_closed IS NOT NULL"
-            resp = await interaction.client.db.fetch(query, data["class_option"], data["topic_tags"])
+            query = "SELECT topic_id, topic_name, topic_tags, upvotes, downvotes FROM topics WHERE class_name = $1 AND topic_tags @> $2 AND dt_closed < $3"
+            resp = await interaction.client.db.fetch(query, data["class_option"], data["topic_tags"], dt.datetime.now())
         elif data["class_option"] is not None:
-            query = "SELECT topic_id, topic_name, topic_tags, upvotes, downvotes FROM topics WHERE class_name = $1 AND dt_closed IS NOT NULL"
-            resp = await interaction.client.db.fetch(query, data["class_option"])
+            query = "SELECT topic_id, topic_name, topic_tags, upvotes, downvotes FROM topics WHERE class_name = $1 AND dt_closed < $2"
+            resp = await interaction.client.db.fetch(query, data["class_option"], dt.datetime.now())
         elif data["topic_tags"] is not None:
-            query = "SELECT topic_id, topic_name, topic_tags, upvotes, downvotes FROM topics WHERE topic_tags @> $1 AND dt_closed IS NOT NULL"
-            resp = await interaction.client.db.fetch(query, data["topic_tags"])
+            query = "SELECT topic_id, topic_name, topic_tags, upvotes, downvotes FROM topics WHERE topic_tags @> $1 AND dt_closed < $2"
+            resp = await interaction.client.db.fetch(query, data["topic_tags"], dt.datetime.now())
 
         temp_results = {}
         tags_dict = {}
@@ -163,6 +170,7 @@ class searchModal(discord.ui.Modal, title='Search for a topic'):
             tags_dict[i["topic_id"]] = {"topic_tags": i["topic_tags"],
                                         "upvotes": i["upvotes"],
                                         "downvotes": i["downvotes"]}
+
         similarities = process.extract(data["topic_name"], temp_results)
 
         results = []
@@ -197,53 +205,25 @@ class searchModal(discord.ui.Modal, title='Search for a topic'):
         data = validateModal(data=data, classes=self.classes)
 
         if "error" in data.keys():
-            embed = prettyEmbed(
-                title="oops",
-                description=data["error"],
-                color=0xFF0000,
-                creator=discord.utils.get(interaction.guild.members, id=355832318532780062)
-            )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            return
+            if "topic_name" in data["error_tags"]:
+                embed = prettyEmbed(
+                    title="oops",
+                    description=data["error"],
+                    color=0xFF0000,
+                    creator=discord.utils.get(interaction.guild.members, id=355832318532780062)
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
 
 
         results = await self.get_results(data, interaction)
         embed = searchEmbed(data, results)
         view = searchEmbedView(embed=embed)
-        msg = await interaction.response.send_message(content=embed.description, view=view)
 
-    def verifyClass(self, class_option: str) -> dict:
-        error = False
-        similarity = process.extractOne(query=class_option, choices=self.classes)
-        if similarity:
-            if similarity[1] >= 80:
-                return {
-                    "class_option": similarity[0],
-                    "error": False
-                }
-        return {
-            "error": False
-        }
+        await interaction.user.send(content=embed.description, view=view)
 
-    def cleanTags(self, tags: str) -> dict:
-        if len(tags) == 0:
-            return {
-                "error": True
-            }
-        tags = tags.split(',')
-
-        clean_tags = []
-        for tag in tags:
-            resp = process.extractOne(query=tag, choices=TAGS)
-            if resp[1] >= 95:
-                clean_tags.append(resp[0])
-
-        if len(clean_tags) == 0:
-            return {
-                "error": True
-            }
-
-        return {
-            "topic_tags": clean_tags,
-            "error": False
-        }
+        embed = prettyEmbed(
+            message_id="check_dms",
+            creator=discord.utils.get(interaction.guild.members, id=355832318532780062)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
