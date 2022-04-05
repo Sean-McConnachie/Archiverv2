@@ -1,0 +1,78 @@
+{
+  "application": {
+    "id": 951620842540892160,
+    "key": "819ea06648348894bc98e3e547340b8cccb2a88c4436a1a5924248c31780a617",
+    "token": "OTUxNjIwODQyNTQwODkyMTYw.YiqH-Q.BCzgFp6V9NsBTDygkVT33-_n-mQ",
+    "prefix": "!",
+    "cogs": [
+      "cogs.help",
+      "cogs.log"
+    ],
+    "active_auto_delete": 259200,
+    "archive_auto_delete": 10800,
+    "server_data": {
+      "guild_id": 951620589297205288,
+      "archiver_channel_id": 951628135147929613,
+      "active_channels_folder_id": [
+        {
+          "table_role_name": "compsci_110",
+          "category_id":  951681934868746341,
+          "category_name": "COMPSCI 110 Active"
+        },
+        {
+          "table_role_name": "compsci_120",
+          "category_id":  951681985699520583,
+          "category_name": "COMPSCI 120 Active"
+        }
+      ],
+      "archived_channels_folder_id": [
+        {
+          "table_role_name": "compsci_110",
+          "category_id":  951682136677691442,
+          "category_name": "COMPSCI 110 Archived"
+        },
+        {
+          "table_role_name": "compsci_120",
+          "category_id":  951682176339017729,
+          "category_name": "COMPSCI 120 Archived"
+        }
+      ],
+      "create_archive_emoji": "\uD83D\uDD28",
+      "search_archive_emoji": "\uD83D\uDDC3",
+      "upvote_emoji": "\uD83D\uDC4D",
+      "downvote_emoji": "\uD83D\uDC4E",
+      "removevote_emoji": "\uD83D\uDED1",
+      "colors": {
+        "search": "3CB371",
+        "creator_embed": "BBD8B3",
+        "tutor_embed": "BBD8B3",
+        "user_embed": "FA7E61"
+
+      }
+    }
+  },
+  "user_roles": {
+    "admin_role_id": 951628833549856788,
+    "moderator_role_id": 951628876180766780,
+    "tutor_role_id": 951629019147800586
+  },
+  "class_roles": [
+    {
+      "discord_role_id": 951648930809135155,
+      "table_role_name": "compsci_110",
+      "display_name": "COMPSCI 110"
+    },
+    {
+      "discord_role_id": 951649023276773377,
+      "table_role_name": "compsci_120",
+      "display_name": "COMPSCI 120"
+    }
+  ],
+  "db": {
+    "database": "archiver",
+    "user": "postgres",
+    "password": "12341234",
+    "host": "127.0.0.1",
+    "port": "5432"
+  }
+}

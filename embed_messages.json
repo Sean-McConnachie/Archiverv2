@@ -1,0 +1,65 @@
+{
+  "example_message": {
+    "title": "REQUIRED",
+    "description": "REQUIRED",
+    "color": "Recommended - hex",
+    "url": "optional",
+    "timestamp": "optional - use '%H:%M:%S, %m/%d/%Y'",
+    "footer": {
+      "text": "REQUIRED if footer is used",
+      "icon_url": "optional"
+    },
+    "image": "optional - url",
+    "thumbnail": "optional - url",
+    "author": {
+      "name": "REQUIRED if author is used",
+      "url": "optional",
+      "icon_url": "optional"
+    }
+  },
+  "archiver_channel_1": {
+    "title": "The Archiver",
+    "description": "This bot can manage new and old topics blah blah blah",
+    "color": "FFFFFF"
+  },
+  "confirm_archive_on_active": {
+    "title": "Archiving your topic",
+    "description": "",
+    "color": "FF0000"
+  },
+  "confirm_archive_on_archive": {
+    "title": "Archiving your topic",
+    "description": "",
+    "color": "0000FF"
+  },
+  "wrong_name_archive_on_active": {
+    "title": "You typed the name wrong. Please try again.",
+    "description": "",
+    "color": "FF0000"
+  },
+  "wrong_name_archive_on_archive": {
+    "title": "You typed the name wrong. Please try again.",
+    "description": "",
+    "color": "FF0000"
+  },
+  "not_creator_active": {
+    "title": "Only the author of this post can archive it.",
+    "description": "",
+    "color": "FF0000"
+  },
+  "not_creator_archive": {
+    "title": "Only the author of this post can archive it.",
+    "description": "",
+    "color": "FF0000"
+  },
+  "no_search_result": {
+    "title": "No result",
+    "description": "We didn't find anything regarding your search. Please use the format `topic id` `topic name`\". This must be typed without any mistakes (eg. \"1 Find substring in string\"). Also, this message will self destruct in 10 seconds 💥",
+    "color": "FF0000"
+  },
+  "make_old_archive": {
+    "title": "Reviving the dead topic",
+    "description": "",
+    "color": "00FF00"
+  }
+}
