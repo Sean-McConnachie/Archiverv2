@@ -9,7 +9,6 @@ from clients.bot import CustomClient
 # TODO: create auto delete
 # TODO: create command line version i.e. !create topic_name topic_description etc
 # TODO: note that ephemeral messages can be sent to app commands
-# TODO: is_tutor not working
 
 # import config
 CONFIG = jLoad('static_files/config.json')

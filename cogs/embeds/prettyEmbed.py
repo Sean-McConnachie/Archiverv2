@@ -12,7 +12,7 @@ class prettyEmbed(discord.Embed):
         super().__init__(**kwargs)
 
         if message_id is not None:
-            message = jLoad('embed_messages.json')[message_id]
+            message = jLoad('static_files/embed_messages.json')[message_id]
             self.title = message["title"]
             self.description = message["description"]
             keys = message.keys()

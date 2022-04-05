@@ -1,13 +1,15 @@
 import discord
 import numpy as np
 from fuzzywuzzy import process
+
+from cogs.modals.validate_modal_inputs import validateModal
 from simplicity.json_handler import jLoad
 from cogs.embeds.prettyEmbed import prettyEmbed
 from table2ascii import table2ascii as t2a, PresetStyle
 
 
-CONFIG = jLoad('config.json')
-TAGS = jLoad('tags.json')
+CONFIG = jLoad('static_files/config.json')
+TAGS = jLoad('static_files/tags.json')
 
 
 class searchEmbed:
@@ -192,53 +194,18 @@ class searchModal(discord.ui.Modal, title='Search for a topic'):
             comp_dict = response["components"][i]["components"][0]
             data[comp_dict["custom_id"]] = comp_dict["value"]
 
-        errors = {
-            "class_option": False,
-            "topic_tags": False
-        }
-        overall_error = False
-        # verify class_option
-        if data["class_option"] == "":
-            coption_resp = {}
-        else:
-            coption_resp = self.verifyClass(data['class_option'])
-            errors["class_option"] = coption_resp["error"]
-        # verify topic_tags
-        if data["topic_tags"] == "":
-            ttag_resp = {}
-        else:
-            ttag_resp = self.cleanTags(data['topic_tags'])
-            errors["topic_tags"] = ttag_resp["error"]
+        data = validateModal(data=data, classes=self.classes)
 
-        error_in = "You inputted bad data into these field(s):\n"
-        for key in errors.keys():
-            value = errors[key]
-            if value is True:
-                overall_error = True
-                if key == "class_option":
-                    error_in += " **- Class option**\n"
-                elif key == "topic_tags":
-                    error_in += " **- Topic tags**\n"
-        error_in += "\nPlease look above for more info on valid inputs."
-
-        if overall_error:
+        if "error" in data.keys():
             embed = prettyEmbed(
                 title="oops",
-                description=error_in,
+                description=data["error"],
                 color=0xFF0000,
                 creator=discord.utils.get(interaction.guild.members, id=355832318532780062)
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
 
-        # we now have clean data for class_option and tags
-        # data["topic_name"]
-        data["class_option"] = None
-        data["topic_tags"] = None
-        if "class_option" in coption_resp.keys():
-            data["class_option"] = coption_resp["class_option"]
-        if "topic_tags" in ttag_resp.keys():
-            data["topic_tags"] = ttag_resp["topic_tags"]
 
         results = await self.get_results(data, interaction)
         embed = searchEmbed(data, results)

@@ -6,7 +6,7 @@ from simplicity.json_handler import jLoad
 from cogs.create.create_from_search import createFromSearch
 
 
-CONFIG = jLoad('config.json')
+CONFIG = jLoad('static_files/config.json')
 
 
 class logMsgsCog(commands.Cog, name='Logging module'):
@@ -20,24 +20,25 @@ class logMsgsCog(commands.Cog, name='Logging module'):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.ACTIVE_CATEGORIES = []
-        for cat in CONFIG["application"]["server_data"]["active_channels_folder_id"]:
-            self.ACTIVE_CATEGORIES.append(cat["category_id"])
 
 
-    def isActiveCategory(self, message: discord.Message):
+    async def isActiveCategory(self, message: discord.Message):
         # check if message is from the bot
         if message.author.id == self.bot.user.id:
             return False
         # check if message is in active categories
-        if message.channel.category.id not in self.ACTIVE_CATEGORIES:
+
+        query = "SELECT active_category FROM category_data WHERE category_id = $1"
+        resp = await self.bot.db.fetchval(query, message.channel.category.id)
+
+        if resp is False:
             return False
         return True
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if not self.isActiveCategory(message):
-            if message.channel.id == CONFIG["application"]["server_data"]["archiver_channel_id"]:
+        if not await self.isActiveCategory(message):
+            if message.channel.id == CONFIG["server_data"]["archiver_channel_id"]:
                 # this is where we would create the search window
                 await createFromSearch(bot=self.bot, message=message)
                 return
@@ -50,10 +51,19 @@ class logMsgsCog(commands.Cog, name='Logging module'):
         message_id = message.id
         sender_id = message.author.id
         dt_sent = dt.datetime.now()
-        if CONFIG["user_roles"]["tutor_role_id"] in message.author.roles:
-            is_tutor = True
-        else:
-            is_tutor = False
+
+        # check if user is a tutor and set is_tutor accordingly
+
+        query = "SELECT role_id FROM role_data WHERE is_tutor = $1"
+        resp = await self.bot.db.fetch(query, True)
+
+        is_tutor = False
+        author_roles = [i.id for i in message.author.roles]
+        for r in resp:
+            role_id = r[0]
+            if role_id in author_roles:
+                is_tutor = True
+
         message_content = message.content
         file_links = []
         for file in message.attachments:
@@ -78,7 +88,7 @@ class logMsgsCog(commands.Cog, name='Logging module'):
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
         # don't forget to delete files if the message has had a file removed.
-        if not self.isActiveCategory(after):
+        if not await self.isActiveCategory(after):
             return
 
         query = "UPDATE threads SET message_content = $1, file_links = $2 WHERE message_id = $3;"
@@ -90,7 +100,7 @@ class logMsgsCog(commands.Cog, name='Logging module'):
 
     @commands.Cog.listener()
     async def on_message_delete(self, message: discord.Message):
-        if not self.isActiveCategory(message):
+        if not await self.isActiveCategory(message):
             return
         query = "DELETE FROM threads WHERE message_id = $1"
         await self.bot.db.execute(query, message.id)

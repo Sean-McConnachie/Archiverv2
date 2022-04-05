@@ -1,5 +1,6 @@
 import discord
 from cogs.embeds.prettyEmbed import prettyEmbed
+import datetime as dt
 
 
 class confirmOldArchiveModal(discord.ui.Modal, title="Are you sure?"):
@@ -38,6 +39,7 @@ class confirmArchiveModal(discord.ui.Modal, title="Are you sure?"):
         for i in range(len(response["components"])):
             comp_dict = response["components"][i]["components"][0]
             data[comp_dict["custom_id"]] = comp_dict["value"]
+
         if data['channel_name'].lower() == interaction.channel.name.lower():
             # they have successfully confirmed deletion
             embed = prettyEmbed(message_id="confirm_archive_on_active",

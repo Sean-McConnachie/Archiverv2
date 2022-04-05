@@ -9,7 +9,7 @@ from simplicity.json_handler import jLoad, jWrite_ifnotexists
 from cogs.views.new_channel_view import newChannelView
 
 
-CONFIG = jLoad('config.json')
+CONFIG = jLoad('static_files/config.json')
 
 
 async def createFromSearch(bot, message: discord.Message):

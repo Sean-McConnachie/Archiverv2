@@ -1,7 +1,8 @@
 import string
 import discord
 import datetime as dt
-from fuzzywuzzy import process
+
+from cogs.modals.validate_modal_inputs import validateModal
 from simplicity.json_handler import jLoad
 from cogs.embeds.prettyEmbed import prettyEmbed
 
@@ -9,8 +10,8 @@ from cogs.embeds.prettyEmbed import prettyEmbed
 from cogs.create.create_from_new import createFromNew
 
 
-CONFIG = jLoad('config.json')
-TAGS = jLoad('tags.json')
+CONFIG = jLoad('static_files/config.json')
+TAGS = jLoad('static_files/tags.json')
 
 
 class createModal(discord.ui.Modal, title='Create a topic'):
@@ -49,151 +50,18 @@ class createModal(discord.ui.Modal, title='Create a topic'):
             data[comp_dict["custom_id"]] = comp_dict["value"]
 
         # now verify all the data, insert it into the database, create a channel, then send a message in that channel for up/down votes
+        data = validateModal(data=data, classes=self.classes)
 
-        # topic_name, description, class_option, topic_tags
-        overall_error = False
-        errors = {
-            "topic_name": False,
-            "description": False,
-            "class_option": False,
-            "topic_tags": False
-        }
-        # verify topic_name
-        tname_resp = self.cleanTopic(data['topic_name'])
-        errors["topic_name"] = tname_resp["error"]
-        # verify class_option
-        coption_resp = self.verifyClass(data['class_option'])
-        errors["class_option"] = coption_resp["error"]
-        # verify topic_tags
-        ttag_resp = self.cleanTags(data['topic_tags'])
-        errors["topic_tags"] = ttag_resp["error"]
-
-        error_in = "You inputted bad data into these field(s):\n"
-        for key in errors.keys():
-            value = errors[key]
-            if value is True:
-                overall_error = True
-                if key == "topic_name":
-                    error_in += " **- Topic name**\n"
-                elif key == "description":
-                    error_in += " **- Description**\n"
-                elif key == "class_option":
-                    error_in += " **- Class option**\n"
-                elif key == "topic_tags":
-                    error_in += " **- Topic tags**\n"
-        error_in += "\nPlease look above for more info on valid inputs."
-
-        if overall_error:
+        if "error" in data.keys():
             embed = prettyEmbed(
                 title="oops",
-                description=error_in,
+                description=data["error"],
                 color=0xFF0000,
                 creator=discord.utils.get(interaction.guild.members, id=355832318532780062)
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
 
-        description = data["description"]
-
-        data = {
-            "topic_name": tname_resp["topic_name"],
-            "channel_name": tname_resp["channel_name"],
-            "description": description,
-            "class_option": coption_resp["class_option"],
-            "topic_tags": ttag_resp["topic_tags"]
-        }
-
 
         await createFromNew(interaction=interaction, data=data)
 
-
-    def cleanTopic(self, name: str) -> dict:
-        error = False
-
-        # remove doulbe whitespaces
-        name = ' '.join(name.split())
-        # remove double hyphens
-        temp = ""
-        for i in range(len(name)):
-            char = name[i]
-            if i == 0:
-                temp += char
-                continue
-            previous = name[i - 1]
-            if  (char == "-" and previous == "-") or \
-                (char == "-" and previous == " ") or \
-                (char == " " and previous == "-") or \
-                (char == " " and previous == " "):
-                continue
-            temp += char
-        name = temp
-
-        # remove anything but letters, single hyphens, forward/backslashes and apostrophes + double quotes
-        keep = ['-', '/', '\\', "'", '"', ' ']
-        keep += string.ascii_letters
-        clean = ""
-        for i in range(len(name)):
-            char = name[i]
-            if (i == 0 and char not in string.ascii_letters) or (
-                    i == len(name) - 1 and char not in string.ascii_letters):
-                continue
-            if char in keep:
-                clean += char
-
-        # remove trailing special characters
-        for i in range(len(clean)):
-            char = clean[len(clean) - 1 - i]
-            if char in string.ascii_letters:
-                clean = clean[0:len(clean) - i]
-                break
-
-        if len(clean) <= 1 or len(clean) >= 45:
-            error = True
-
-        channel_name = ""
-        for char in clean:
-            if char in string.ascii_letters:
-                channel_name += char
-            else:
-                channel_name += '-'
-
-        return {
-            "topic_name": clean,
-            "channel_name": channel_name,
-            "error": error
-        }
-
-    def verifyClass(self, class_option: str) -> dict:
-        similarity = process.extractOne(query=class_option, choices=self.classes)
-        if similarity:
-            if similarity[1] >= 80:
-                return {
-                    "class_option": similarity[0],
-                    "error": False
-                }
-        return {
-            "error": True
-        }
-
-    def cleanTags(self, tags: str) -> dict:
-        if len(tags) == 0:
-            return {
-                "error": True
-            }
-        tags = tags.split(',')
-
-        clean_tags = []
-        for tag in tags:
-            resp = process.extractOne(query=tag, choices=TAGS)
-            if resp[1] >= 95:
-                clean_tags.append(resp[0])
-
-        if len(clean_tags) == 0:
-            return {
-                "error": True
-            }
-
-        return {
-            "topic_tags": clean_tags,
-            "error": False
-        }

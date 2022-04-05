@@ -2,8 +2,8 @@ from simplicity.json_handler import jLoad
 import os
 
 
-INITIAL_DATA = jLoad(os.path.join("database", "on_create.json"))
-CONFIG = jLoad('config.json')
+INITIAL_DATA = jLoad("database/on_create.json")
+CONFIG = jLoad('static_files/config.json')
 
 
 async def createDB(conn):
@@ -17,12 +17,12 @@ async def createDB(conn):
         class_name TEXT,
         topic_tags TEXT[],
         dt_created TIMESTAMP,
-        dt_closed TIMESTAMP DEFAULT null,
+        dt_closed TIMESTAMP,
         creator_id BIGINT,
         upvotes BIGINT[],
         downvotes BIGINT[],
         archive_channel_id BIGINT DEFAULT null,
-        archive_dt_created TIMESTAMP DEFAULT null,
+        archive_dt_close TIMESTAMP DEFAULT null,
         archive_creator_id BIGINT DEFAULT null
     )
     """

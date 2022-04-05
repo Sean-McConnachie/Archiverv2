@@ -8,18 +8,10 @@ from simplicity.json_handler import jLoad
 from cogs.views.new_channel_view import newChannelView
 
 
-CONFIG = jLoad('config.json')
+CONFIG = jLoad('static_files/config.json')
 
 
 async def createFromNew(interaction: discord.Interaction, data: dict):
-    new_data = {
-        "topic_name": data["topic_name"],
-        "channel_name": data["channel_name"],
-        "description": data["description"],
-        "class_option": data["class_option"],
-        "topic_tags": data["topic_tags"],
-    }
-
     # send a message to acknowledge response
     embed = prettyEmbed(
         title="Creating your topic now",
@@ -30,13 +22,15 @@ async def createFromNew(interaction: discord.Interaction, data: dict):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # create channel and send basic info to channel + insert into database
-    for roles in CONFIG["class_roles"]:
-        if roles["display_name"] == new_data["class_option"]:
-            table_name = roles["table_role_name"]
-    for category in CONFIG["application"]["server_data"]["active_channels_folder_id"]:
-        if category["table_role_name"] == table_name:
-            active_category_id = category["category_id"]
+
+    # use data["class_option"] to get role id, then get corresponding category id using that
+    role_id = discord.utils.get(interaction.guild.roles, name=data["class_option"]).id
+    query = "SELECT category_id FROM category_data WHERE class_role_id = $1"
+    resp = await interaction.client.db.fetchval(query, role_id)
+    active_category_id = resp
+
     active_category = discord.utils.get(interaction.guild.channels, id=active_category_id)
+
     if len(active_category.channels) >= 50:
         # too many active topics - remove oldest channel, archive it
         old_channel = active_category.channels[-1]
@@ -54,12 +48,13 @@ async def createFromNew(interaction: discord.Interaction, data: dict):
 
     db_data = {
         "channel_id": None,
-        "topic_name": new_data["topic_name"],
-        "channel_name": new_data["channel_name"],
-        "topic_description": new_data["description"],
-        "class_name": new_data["class_option"],
-        "topic_tags": new_data["topic_tags"],
+        "topic_name": data["topic_name"],
+        "channel_name": data["channel_name"],
+        "topic_description": data["description"],
+        "class_name": data["class_option"],
+        "topic_tags": data["topic_tags"],
         "dt_created": dt.datetime.now(),
+        "dt_closed": dt.datetime.now() + dt.timedelta(days=3),
         "creator_id": interaction.user.id
     }
 
@@ -73,6 +68,8 @@ async def createFromNew(interaction: discord.Interaction, data: dict):
     {db_data["topic_description"]}
 
     Tags: *{", ".join(db_data["topic_tags"])}*
+    
+    Closes at: *{db_data['dt_closed'].strftime("%H:%M %d/%m/%Y")}*
 
     **Upvotes:** {{0}} | **Downvotes:** {{1}}
     """
@@ -87,7 +84,7 @@ async def createFromNew(interaction: discord.Interaction, data: dict):
         author=discord.utils.get(interaction.guild.members, id=db_data["creator_id"]),
         creator=discord.utils.get(interaction.guild.members, id=355832318532780062)
     )
-    view = newChannelView(embed=embed, basic_content=basic_content)
+    view = newChannelView(embed=embed, basic_content=basic_content, Active=True)
 
     msg = await new_channel.send(embed=embed, view=view)
     await msg.pin()
@@ -101,10 +98,11 @@ async def createFromNew(interaction: discord.Interaction, data: dict):
         class_name,
         topic_tags,
         dt_created,
+        dt_closed,
         creator_id
     )
     VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8
+        $1, $2, $3, $4, $5, $6, $7, $8, $9
     )
     """
     await interaction.client.db.execute(query, *tuple(db_data.values()))
