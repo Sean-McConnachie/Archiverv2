@@ -18,7 +18,7 @@ class removeOld(commands.Cog, name='Remove old channels'):
         self.bot = bot
         self.runLoop.start()
 
-    @tasks.loop(seconds=10)
+    @tasks.loop(seconds=CONFIG["application"]["remove_check_interval"])
     async def runLoop(self):
         guild = discord.utils.get(self.bot.guilds, id=CONFIG["server_data"]["guild_id"])
 

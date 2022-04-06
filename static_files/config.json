@@ -20,7 +20,8 @@
       "cogs.slash.bot_commands"
     ],
     "active_auto_delete": 259200,
-    "archive_auto_delete": 10800
+    "archive_auto_delete": 10800,
+    "remove_check_interval": 60
   },
 
   "server_data": {
