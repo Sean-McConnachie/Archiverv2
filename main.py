@@ -27,6 +27,7 @@ async def run_bot():
 
     for extension in CONFIG["application"]["cogs"]:
         await bot.load_extension(extension)
+
     await bot.start(CONFIG["application"]["token"])
 
 

@@ -124,7 +124,7 @@ def cleanTopic(name: str) -> dict:
 
 
 def verifyClass(class_option: str, classes: list) -> dict:
-    if class_option == "":
+    if class_option == "" or class_option is None:
         return {
             "error": True,
             "class_option": None
@@ -143,7 +143,7 @@ def verifyClass(class_option: str, classes: list) -> dict:
 
 
 def cleanTags(tags: str) -> dict:
-    if len(tags) == 0:
+    if tags is None or len(tags) == 0:
         return {
             "topic_tags": None,
             "error": True

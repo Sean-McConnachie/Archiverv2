@@ -1,6 +1,8 @@
 import discord
 import datetime as dt
 from discord.ext import commands
+
+from cogs.shared_functions import isActiveCategory
 from simplicity.json_handler import jLoad
 
 from cogs.create.create_from_search import createFromSearch
@@ -21,36 +23,12 @@ class logMsgsCog(commands.Cog, name='Logging module'):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-
-    async def isActiveCategory(self, message: discord.Message):
-        # check if message is from the bot
-        if message.author.id == self.bot.user.id:
-            return False
-
-        # check if message is a DM
-        if isinstance(message.channel, discord.DMChannel):
-            return False
-
-        # check if message is in active categories
-        query = "SELECT active_category FROM category_data WHERE category_id = $1"
-        resp = await self.bot.db.fetchval(query, message.channel.category.id)
-
-        if resp is False:
-            return False
-        elif resp is None:
-            return False
-        else:
-            return True
-
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if not await self.isActiveCategory(message):
-            if message.channel.id == CONFIG["server_data"]["archiver_channel_id"]:
-                # this is where we would create the search window
-                await createFromSearch(bot=self.bot, message=message)
-                return
-            else:
-                return
+        if message.content.startswith(CONFIG["application"]["prefix"]):
+            return
+        if not await isActiveCategory(bot=self.bot, message=message):
+            return
         channel_id = message.channel.id
         query = "SELECT topic_id FROM topics WHERE channel_id = $1;"
         topic_id = await self.bot.db.fetchval(query, channel_id)
@@ -95,7 +73,7 @@ class logMsgsCog(commands.Cog, name='Logging module'):
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
         # don't forget to delete files if the message has had a file removed.
-        if not await self.isActiveCategory(after):
+        if not await isActiveCategory(bot=self.bot, message=after):
             return
 
         query = "UPDATE threads SET message_content = $1, file_links = $2 WHERE message_id = $3;"
@@ -107,7 +85,7 @@ class logMsgsCog(commands.Cog, name='Logging module'):
 
     @commands.Cog.listener()
     async def on_message_delete(self, message: discord.Message):
-        if not await self.isActiveCategory(message):
+        if not await isActiveCategory(bot=self.bot, message=message):
             return
         query = "DELETE FROM threads WHERE message_id = $1"
         await self.bot.db.execute(query, message.id)

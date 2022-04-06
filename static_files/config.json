@@ -11,11 +11,13 @@
     "id": 951620842540892160,
     "key": "819ea06648348894bc98e3e547340b8cccb2a88c4436a1a5924248c31780a617",
     "token": "OTUxNjIwODQyNTQwODkyMTYw.YiqH-Q.BCzgFp6V9NsBTDygkVT33-_n-mQ",
-    "prefix": "!",
+    "prefix": "/",
     "cogs": [
       "cogs.help",
       "cogs.logmessages",
-      "cogs.removeold"
+      "cogs.removeold",
+      "cogs.slash.archiver_slash",
+      "cogs.slash.bot_commands"
     ],
     "active_auto_delete": 259200,
     "archive_auto_delete": 10800
@@ -24,7 +26,6 @@
   "server_data": {
     "guild_id": 951620589297205288,
     "archiver_channel_id": 951628135147929613,
-
 
     "create_archive_emoji": "\uD83D\uDD28",
     "search_archive_emoji": "\uD83D\uDDC3",
