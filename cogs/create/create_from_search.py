@@ -48,13 +48,14 @@ async def createFromSearch(bot, message: discord.Message):
 
         # create channel and send basic info to channel + insert archive_channel_id into database
         role_id = discord.utils.get(message.guild.roles, id=resp["role_id"]).id
-        query = "SELECT category_id FROM category_data WHERE class_role_id = $1"
+        query = "SELECT category_id FROM category_data WHERE class_role_id = $1 AND active_category = false"
         archive_category_id = await bot.db.fetchval(query, role_id)
 
         archive_category = discord.utils.get(message.guild.channels, id=archive_category_id)
 
         # check if this topic already exists
         all_ids = [channel.id for channel in archive_category.channels]
+
         if archive_category_id in all_ids:
             # topic exists
             embed = prettyEmbed(
@@ -96,8 +97,8 @@ async def createFromSearch(bot, message: discord.Message):
 
         # create the new topic channel
         new_channel = await archive_category.create_text_channel(name=resp["channel_name"])
-        query = "UPDATE topics SET archive_channel_id = $1, archive_dt_close = $2, archive_creator_id = $3 WHERE topic_id = $4;"
-        await bot.db.execute(query, new_channel.id, dt.datetime.now()+dt.timedelta(seconds=CONFIG['application']['archive_auto_delete']), message.author.id, resp["topic_id"])
+        query = "UPDATE topics SET archive_channel_id = $1, archive_dt_close = $2, archive_creator_id = $3, currently_open = $4 WHERE topic_id = $5;"
+        await bot.db.execute(query, new_channel.id, dt.datetime.now()+dt.timedelta(seconds=CONFIG['application']['archive_auto_delete']), message.author.id, True, resp["topic_id"])
 
         basic_content = f"""
                 ***{resp["class_name"]}***

@@ -26,8 +26,12 @@ class logMsgsCog(commands.Cog, name='Logging module'):
         # check if message is from the bot
         if message.author.id == self.bot.user.id:
             return False
-        # check if message is in active categories
 
+        # check if message is a DM
+        if isinstance(message.channel, discord.DMChannel):
+            return False
+
+        # check if message is in active categories
         query = "SELECT active_category FROM category_data WHERE category_id = $1"
         resp = await self.bot.db.fetchval(query, message.channel.category.id)
 

@@ -23,7 +23,7 @@ class newChannelView(discord.ui.View):
         creator_id = await interaction.client.db.fetchval(query, interaction.channel.id)
         if creator_id == interaction.user.id:
             # send modal for confirmation
-            modal_view = confirmArchiveModal()
+            modal_view = confirmArchiveModal(Active=self.Active)
             modal_view.topic_name.placeholder = f"{interaction.channel.name}"
             await interaction.response.send_modal(modal_view)
         else:

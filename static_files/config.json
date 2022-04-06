@@ -14,7 +14,8 @@
     "prefix": "!",
     "cogs": [
       "cogs.help",
-      "cogs.logmessages"
+      "cogs.logmessages",
+      "cogs.removeold"
     ],
     "active_auto_delete": 259200,
     "archive_auto_delete": 10800

@@ -25,7 +25,7 @@ async def createFromNew(interaction: discord.Interaction, data: dict):
 
     # use data["class_option"] to get role id, then get corresponding category id using that
     role_id = discord.utils.get(interaction.guild.roles, name=data["class_option"]).id
-    query = "SELECT category_id FROM category_data WHERE class_role_id = $1"
+    query = "SELECT category_id FROM category_data WHERE class_role_id = $1 AND active_category = true"
     resp = await interaction.client.db.fetchval(query, role_id)
     active_category_id = resp
 

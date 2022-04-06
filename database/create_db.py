@@ -1,5 +1,4 @@
 from simplicity.json_handler import jLoad
-import os
 
 
 INITIAL_DATA = jLoad("database/on_create.json")
@@ -24,7 +23,8 @@ async def createDB(conn):
         downvotes BIGINT[],
         archive_channel_id BIGINT DEFAULT null,
         archive_dt_close TIMESTAMP DEFAULT null,
-        archive_creator_id BIGINT DEFAULT null
+        archive_creator_id BIGINT DEFAULT null,
+        currently_open BOOLEAN DEFAULT true
     )
     """
 
