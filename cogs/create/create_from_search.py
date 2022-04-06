@@ -12,13 +12,11 @@ from cogs.views.new_channel_view import newChannelView
 CONFIG = jLoad('static_files/config.json')
 
 
-async def createFromSearch(bot, interaction: discord.Interaction, topic_id, topic_name):
+async def createFromSearch(bot, interaction: discord.Interaction, topic_id = None, topic_name = None):
     if bot.user.id == interaction.user.id:
         return
     error = False
     try:
-        topic_id = int(interaction.message.content.split(' ')[0])
-        topic_name = " ".join(interaction.message.content.split(' ')[1:])
         query = "SELECT * FROM topics WHERE topic_id = $1 AND topic_name = $2 AND dt_closed < $3;"
         resp = await bot.db.fetch(query, topic_id, topic_name, dt.datetime.now())
         if isinstance(resp, list) and len(resp) == 1:
@@ -55,7 +53,6 @@ async def createFromSearch(bot, interaction: discord.Interaction, topic_id, topi
 
     # check if this topic already exists
     all_ids = [channel.id for channel in archive_category.channels]
-
     if archive_category_id in all_ids:
         # topic exists
         embed = prettyEmbed(
@@ -64,19 +61,10 @@ async def createFromSearch(bot, interaction: discord.Interaction, topic_id, topi
             color=0x00FF00,
             creator=discord.utils.get(interaction.guild.members, id=355832318532780062)
         )
+        await interaction.edit_original_message(embed=embed)
         return
 
-    for channel in archive_category.channels:
-        if channel.id == resp["archive_channel_id"]:
-            embed = prettyEmbed(
-                title=f"New topic created!",
-                description=f"Go to <#{channel.id}>",
-                color=0x00FF00,
-                creator=discord.utils.get(interaction.guild.members, id=355832318532780062)
-            )
-            await interaction.edit_original_message(embed=embed)
-            return
-    # create a new channel if it doesn't already exist
+
     if len(archive_category.channels) >= 50:
         # too many active topics - remove oldest channel, archive it
         old_channel = archive_category.channels[-1]
@@ -91,133 +79,132 @@ async def createFromSearch(bot, interaction: discord.Interaction, topic_id, topi
         await interaction.edit_original_message(embed=embed)
         await old_channel.delete(
             reason=f"The category was full. User {interaction.user.id} caused the overflow delete.")
+        return
+    # create the new topic channel
+    new_channel = await archive_category.create_text_channel(name=resp["channel_name"])
+    query = "UPDATE topics SET archive_channel_id = $1, archive_dt_close = $2, archive_creator_id = $3, currently_open = $4 WHERE topic_id = $5;"
+    await bot.db.execute(query, new_channel.id, dt.datetime.now()+dt.timedelta(seconds=CONFIG['application']['archive_auto_delete']), interaction.user.id, True, resp["topic_id"])
 
-        # create the new topic channel
-        new_channel = await archive_category.create_text_channel(name=resp["channel_name"])
-        query = "UPDATE topics SET archive_channel_id = $1, archive_dt_close = $2, archive_creator_id = $3, currently_open = $4 WHERE topic_id = $5;"
-        await bot.db.execute(query, new_channel.id, dt.datetime.now()+dt.timedelta(seconds=CONFIG['application']['archive_auto_delete']), interaction.user.id, True, resp["topic_id"])
+    basic_content = f"""
+            ***{resp["class_name"]}***
 
-        basic_content = f"""
-                ***{resp["class_name"]}***
+            {resp["topic_description"]}
 
-                {resp["topic_description"]}
+            Tags: *{", ".join(resp["topic_tags"])}*
+            
+            Closes at: *{(dt.datetime.now()+dt.timedelta(seconds=CONFIG['application']['archive_auto_delete'])).strftime("%H:%M %d/%m/%Y")}*
 
-                Tags: *{", ".join(resp["topic_tags"])}*
-                
-                Closes at: *{(dt.datetime.now()+dt.timedelta(seconds=CONFIG['application']['archive_auto_delete'])).strftime("%H:%M %d/%m/%Y")}*
+            **Upvotes:** {{0}} | **Downvotes:** {{1}}
+            """
+    if resp["upvotes"] is None:
+        upvotes = 0
+    else:
+        upvotes = len(resp["upvotes"])
+    if resp["downvotes"] is None:
+        downvotes = 0
+    else:
+        downvotes = len(resp["downvotes"])
+    content = basic_content.format(upvotes, downvotes)
+    embed = prettyEmbed(
+        title=resp["topic_name"],
+        description=content,
+        color=0x0000FF,
+        author=discord.utils.get(interaction.guild.members, id=resp["creator_id"]),
+        creator=discord.utils.get(interaction.guild.members, id=355832318532780062)
+    )
+    view = newChannelView(embed=embed, basic_content=basic_content, Active=False)
+    msg1 = await new_channel.send(embed=embed, view=view)
 
-                **Upvotes:** {{0}} | **Downvotes:** {{1}}
-                """
-        if resp["upvotes"] is None:
-            upvotes = 0
-        else:
-            upvotes = len(resp["upvotes"])
-        if resp["downvotes"] is None:
-            downvotes = 0
-        else:
-            downvotes = len(resp["downvotes"])
-
-        content = basic_content.format(upvotes, downvotes)
-        embed = prettyEmbed(
-            title=resp["topic_name"],
-            description=content,
-            color=0x0000FF,
-            author=discord.utils.get(interaction.guild.members, id=resp["creator_id"]),
-            creator=discord.utils.get(interaction.guild.members, id=355832318532780062)
-        )
-        view = newChannelView(embed=embed, basic_content=basic_content, Active=False)
-        msg1 = await new_channel.send(embed=embed, view=view)
-
-        # now send all of the messages from the old thread
-        query = "SELECT * FROM threads WHERE topic_id = $1"
-        temp = await bot.db.fetch(query, resp["topic_id"])
-        old_messages = []
-        json_messages = []
-        senders = []
-        colors = CONFIG["server_data"]["colors"]
-        for msg in temp:
-            o_dict = {
-                "message_id": msg["message_id"],
-                "sender_id": msg["sender_id"],
-                "dt_sent": msg["dt_sent"],
-                "is_tutor": msg["is_tutor"],
-                "message_content": msg["message_content"],
-                "file_links": msg["file_links"]
-            }
-            json_messages.append(o_dict)
-            o_dict["dt_sent"] = o_dict["dt_sent"].strftime("%H:%M:%S, %m/%d/%Y")
-            if resp["creator_id"] == msg["sender_id"]:
-                o_dict["color"] = int(colors["creator_embed"], base=16)
-            elif msg["is_tutor"] is True:
-                o_dict["color"] = int(colors["tutor_embed"], base=16)
-            else:
-                o_dict["color"] = int(colors["user_embed"], base=16)
-            old_messages.append(o_dict)
-
-        # json transcript
-        path1 = os.path.join("temp_files", f'JSON_Transcript_{resp["topic_id"]}.json')
-        jWrite_ifnotexists(path1, json_messages)
-        file1 = discord.File(path1)
-
-        data = {
-            "topic_id": resp["topic_id"],
-            "topic_name": resp["topic_name"],
-            "channel_name": resp["channel_name"],
-            "topic_description": resp["topic_description"],
-            "class_name": resp["class_name"],
-            "creator_id": resp["creator_id"],
-            "topic_tags": resp["topic_tags"],
-            "dt_created": resp["dt_created"],
-            "dt_closed": resp["dt_closed"],
-            "upvotes": resp["upvotes"],
-            "downvotes": resp["downvotes"],
+    # now send all of the messages from the old thread
+    query = "SELECT * FROM threads WHERE topic_id = $1"
+    temp = await bot.db.fetch(query, resp["topic_id"])
+    old_messages = []
+    json_messages = []
+    senders = []
+    colors = CONFIG["server_data"]["colors"]
+    for msg in temp:
+        o_dict = {
+            "message_id": msg["message_id"],
+            "sender_id": msg["sender_id"],
+            "dt_sent": msg["dt_sent"],
+            "is_tutor": msg["is_tutor"],
+            "message_content": msg["message_content"],
+            "file_links": msg["file_links"]
         }
+        json_messages.append(o_dict)
+        o_dict["dt_sent"] = o_dict["dt_sent"].strftime("%H:%M:%S, %m/%d/%Y")
+        if resp["creator_id"] == msg["sender_id"]:
+            o_dict["color"] = int(colors["creator_embed"], base=16)
+        elif msg["is_tutor"] is True:
+            o_dict["color"] = int(colors["tutor_embed"], base=16)
+        else:
+            o_dict["color"] = int(colors["user_embed"], base=16)
+        old_messages.append(o_dict)
 
-        # HTML transcript
-        senders = {}
-        ids = [i["sender_id"] for i in old_messages]
-        if resp["creator_id"] not in ids:
-            ids.append(resp["creator_id"])
-        ids = list(set(ids))
-        for i in ids:
-            sender = discord.utils.get(interaction.guild.members, id=i)
-            senders[i] = sender
+    # json transcript
+    path1 = os.path.join("temp_files", f'JSON_Transcript_{resp["topic_id"]}.json')
+    jWrite_ifnotexists(path1, json_messages)
+    file1 = discord.File(path1)
 
-        data["dt_created"] = data["dt_created"].strftime("%H:%M:%S, %m/%d/%Y")
-        if data["dt_closed"] is not None:
-            data["dt_closed"] = data["dt_closed"].strftime("%H:%M:%S, %m/%d/%Y")
+    data = {
+        "topic_id": resp["topic_id"],
+        "topic_name": resp["topic_name"],
+        "channel_name": resp["channel_name"],
+        "topic_description": resp["topic_description"],
+        "class_name": resp["class_name"],
+        "creator_id": resp["creator_id"],
+        "topic_tags": resp["topic_tags"],
+        "dt_created": resp["dt_created"],
+        "dt_closed": resp["dt_closed"],
+        "upvotes": resp["upvotes"],
+        "downvotes": resp["downvotes"],
+    }
 
-        template = make_template(data, messages=old_messages, senders=senders)
-        path2 = os.path.join('temp_files', f'HTML_Transcript_{resp["topic_id"]}.html')
-        with open(path2, mode='w', encoding="utf-8") as outfile:
-            outfile.write(template)
-        file2 = discord.File(path2)
+    # HTML transcript
+    senders = {}
+    ids = [i["sender_id"] for i in old_messages]
+    if resp["creator_id"] not in ids:
+        ids.append(resp["creator_id"])
+    ids = list(set(ids))
+    for i in ids:
+        sender = discord.utils.get(interaction.guild.members, id=i)
+        senders[i] = sender
 
-        msg2 = await new_channel.send(files=[file1, file2])
-        await msg1.pin()
-        await msg2.pin()
-        if os.path.exists(path1):
-            os.remove(path1)
-        if os.path.exists(path2):
-            os.remove(path2)
+    data["dt_created"] = data["dt_created"].strftime("%H:%M:%S, %m/%d/%Y")
+    if data["dt_closed"] is not None:
+        data["dt_closed"] = data["dt_closed"].strftime("%H:%M:%S, %m/%d/%Y")
 
-        for msgi in range(len(old_messages)):
-            msg = old_messages[msgi]
-            sender = senders[msg["sender_id"]]
+    template = make_template(data, messages=old_messages, senders=senders)
+    path2 = os.path.join('temp_files', f'HTML_Transcript_{resp["topic_id"]}.html')
+    with open(path2, mode='w', encoding="utf-8") as outfile:
+        outfile.write(template)
+    file2 = discord.File(path2)
 
-            embed = messageEmbed(
-                message=msg,
-                message_c=(msgi, len(old_messages)),
-                sender=sender
-            )
-            await new_channel.send(embed=embed)
-        embed = prettyEmbed(
-            title=f"New topic created!",
-            description=f"Go to <#{new_channel.id}>",
-            color=0x00FF00,
-            creator=discord.utils.get(interaction.guild.members, id=355832318532780062)
+    msg2 = await new_channel.send(files=[file1, file2])
+    await msg1.pin()
+    await msg2.pin()
+    if os.path.exists(path1):
+        os.remove(path1)
+    if os.path.exists(path2):
+        os.remove(path2)
+
+    for msgi in range(len(old_messages)):
+        msg = old_messages[msgi]
+        sender = senders[msg["sender_id"]]
+
+        embed = messageEmbed(
+            message=msg,
+            message_c=(msgi, len(old_messages)),
+            sender=sender
         )
-        await interaction.edit_original_message(embed=embed)
+        await new_channel.send(embed=embed)
+    embed = prettyEmbed(
+        title=f"New topic created!",
+        description=f"Go to <#{new_channel.id}>",
+        color=0x00FF00,
+        creator=discord.utils.get(interaction.guild.members, id=355832318532780062)
+    )
+    await interaction.edit_original_message(embed=embed)
 
 
 class messageEmbed(discord.Embed):

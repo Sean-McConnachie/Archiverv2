@@ -1,5 +1,6 @@
 import discord
 from cogs.embeds.prettyEmbed import prettyEmbed
+from cogs.shared_functions import up_down_vote
 from simplicity.json_handler import jLoad
 from cogs.modals.channel_delete import confirmArchiveModal
 
@@ -34,88 +35,24 @@ class newChannelView(discord.ui.View):
 
     @discord.ui.button(label="Upvote", emoji=CONFIG["server_data"]["upvote_emoji"], custom_id="upvote_callback")
     async def upvote_callback(self, interaction: discord.Interaction, button: discord.Button):
-        if self.Active:
-            query = "SELECT downvotes, upvotes FROM topics WHERE channel_id = $1;"
-        else:
-            query = "SELECT downvotes, upvotes FROM topics WHERE archive_channel_id = $1;"
-        record = await interaction.client.db.fetch(query, interaction.channel.id)
-        record = record[0]
-        downvotes = record["downvotes"]
-        upvotes = record["upvotes"]
-        if downvotes is None:
-            downvotes = []
-        if upvotes is None:
-            upvotes = []
-        if interaction.user.id in downvotes:
-            downvotes.remove(interaction.user.id)
-        if interaction.user.id in upvotes:
-            pass
-        if interaction.user.id not in upvotes:
-            upvotes.append(interaction.user.id)
-
-        if self.Active:
-            query = "UPDATE topics SET upvotes = $1, downvotes = $2 WHERE channel_id = $3"
-        else:
-            query = "UPDATE topics SET upvotes = $1, downvotes = $2 WHERE archive_channel_id = $3"
-        await interaction.client.db.execute(query, upvotes, downvotes, interaction.channel.id)
-        await self.update_embed(upvotes=upvotes, downvotes=downvotes, interaction=interaction)
-        await interaction.response.defer()
+        new_votes = await up_down_vote(interaction=interaction, vote="up")
+        await self.update_embed(upvotes=new_votes["upvotes"],
+                                downvotes=new_votes["downvotes"],
+                                interaction=interaction)
 
     @discord.ui.button(label="Downvote", emoji=CONFIG["server_data"]["downvote_emoji"], custom_id="downvote_callback")
     async def downvote_callback(self, interaction: discord.Interaction, button: discord.Button):
-        if self.Active:
-            query = "SELECT downvotes, upvotes FROM topics WHERE channel_id = $1;"
-        else:
-            query = "SELECT downvotes, upvotes FROM topics WHERE archive_channel_id = $1;"
-        record = await interaction.client.db.fetch(query, interaction.channel.id)
-        record = record[0]
-        downvotes = record["downvotes"]
-        upvotes = record["upvotes"]
-        if downvotes is None:
-            downvotes = []
-        if upvotes is None:
-            upvotes = []
-        if interaction.user.id in upvotes:
-            upvotes.remove(interaction.user.id)
-        if interaction.user.id in downvotes:
-            pass
-        if interaction.user.id not in downvotes:
-            downvotes.append(interaction.user.id)
-
-        if self.Active:
-            query = "UPDATE topics SET upvotes = $1, downvotes = $2 WHERE channel_id = $3"
-        else:
-            query = "UPDATE topics SET upvotes = $1, downvotes = $2 WHERE archive_channel_id = $3"
-        await interaction.client.db.execute(query, upvotes, downvotes, interaction.channel.id)
-        await self.update_embed(upvotes=upvotes, downvotes=downvotes, interaction=interaction)
-        await interaction.response.defer()
+        new_votes = await up_down_vote(interaction=interaction, vote="down")
+        await self.update_embed(upvotes=new_votes["upvotes"],
+                                downvotes=new_votes["downvotes"],
+                                interaction=interaction)
 
     @discord.ui.button(label="Remove vote", emoji=CONFIG["server_data"]["removevote_emoji"], custom_id="removevote_callback")
     async def removevote_callback(self, interaction: discord.Interaction, button: discord.Button):
-        if self.Active:
-            query = "SELECT downvotes, upvotes FROM topics WHERE channel_id = $1;"
-        else:
-            query = "SELECT downvotes, upvotes FROM topics WHERE archive_channel_id = $1;"
-        record = await interaction.client.db.fetch(query, interaction.channel.id)
-        record = record[0]
-        downvotes = record["downvotes"]
-        upvotes = record["upvotes"]
-        if downvotes is None:
-            downvotes = []
-        if upvotes is None:
-            upvotes = []
-        if interaction.user.id in upvotes:
-            upvotes.remove(interaction.user.id)
-        if interaction.user.id in downvotes:
-            downvotes.remove(interaction.user.id)
-
-        if self.Active:
-            query = "UPDATE topics SET upvotes = $1, downvotes = $2 WHERE channel_id = $3"
-        else:
-            query = "UPDATE topics SET upvotes = $1, downvotes = $2 WHERE archive_channel_id = $3"
-        await interaction.client.db.execute(query, upvotes, downvotes, interaction.channel.id)
-        await self.update_embed(upvotes=upvotes, downvotes=downvotes, interaction=interaction)
-        await interaction.response.defer()
+        new_votes = await up_down_vote(interaction=interaction, vote="remove")
+        await self.update_embed(upvotes=new_votes["upvotes"],
+                                downvotes=new_votes["downvotes"],
+                                interaction=interaction)
 
     async def update_embed(self, upvotes: list, downvotes: list, interaction: discord.Interaction):
         temp = self.basic_content

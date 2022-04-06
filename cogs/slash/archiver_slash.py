@@ -11,8 +11,10 @@ from cogs.create.create_from_search import createFromSearch
 from cogs.embeds.prettyEmbed import prettyEmbed
 from cogs.embeds.search_embed import searchEmbed
 from cogs.modals.validate_modal_inputs import validateModal
-from cogs.shared_functions import get_results
+from cogs.shared_functions import get_results, delete_channel, simpleIsActiveCategory, up_down_vote
+from cogs.views.new_channel_view import newChannelView
 from cogs.views.search_view import searchEmbedView
+import datetime as dt
 
 
 class archiverSlash(commands.Cog, name="Create search slash"):
@@ -30,6 +32,8 @@ class archiverSlash(commands.Cog, name="Create search slash"):
     /downvote
 
     /removevote
+
+    /resetinteraction
     """
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
@@ -128,28 +132,121 @@ class archiverSlash(commands.Cog, name="Create search slash"):
         """
         /archive <channel name>   | will archive the topic
         """
-        pass
+        # this function first checks if they inputted the correct channel name
+        # if yes, then check if the channel is in an active or archive category
+        # it then checks if the user is the original creator of the channel
+        # then call delete_channel
+
+        Active = await simpleIsActiveCategory(interaction=interaction)
+        if Active is None:
+            return
+
+        if Active:
+            query = "SELECT creator_id FROM topics WHERE channel_id = $1;"
+        else:
+            query = "SELECT archive_creator_id FROM topics WHERE archive_channel_id = $1;"
+        creator_id = await interaction.client.db.fetchval(query, interaction.channel.id)
+
+        if not creator_id == interaction.user.id:
+            # send error to fake user xd
+            embed = prettyEmbed(message_id="not_creator_archive",
+                                creator=discord.utils.get(interaction.guild.members, id=355832318532780062))
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+
+        if name.lower() == interaction.channel.name.lower() and creator_id == interaction.user.id:
+            await delete_channel(interaction=interaction, Active=Active)
+        else:
+            if Active:
+                embed = prettyEmbed(message_id="wrong_name_archive_on_active",
+                                    creator=discord.utils.get(interaction.guild.members, id=355832318532780062))
+            else:
+                embed = prettyEmbed(
+                    message_id="wrong_name_archive_on_archive",
+                    creator=discord.utils.get(interaction.guild.members, id=355832318532780062)
+                )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+    async def editOrignalMessage(self, interaction: discord.Interaction, new_votes: dict = None):
+        original_message = []
+        async for message in interaction.channel.history(limit=1, oldest_first=True):
+            original_message.append(message)
+        original_message = original_message[0]
+
+        query = "SELECT class_name, topic_description, topic_tags, creator_id, topic_name FROM topics WHERE topic_id = $1"
+        resp = await interaction.client.db.fetch(query, new_votes["topic_id"])
+        resp = resp[0]
+
+        basic_content = f"""
+                                ***{resp["class_name"]}***
+
+                                {resp["topic_description"]}
+
+                                Tags: *{", ".join(resp["topic_tags"])}*
+
+                                Closes at: *{new_votes['dt_closed'].strftime("%H:%M %d/%m/%Y")}*
+
+                                **Upvotes:** {{0}} | **Downvotes:** {{1}}
+                                """
+
+        content = basic_content.format(len(new_votes["upvotes"]), len(new_votes["downvotes"]))
+        embed = prettyEmbed(
+            title=resp["topic_name"],
+            description=content,
+            color=0x0000FF,
+            author=discord.utils.get(interaction.guild.members, id=resp["creator_id"]),
+            creator=discord.utils.get(interaction.guild.members, id=355832318532780062)
+        )
+        view = newChannelView(embed=embed, basic_content=basic_content, Active=False)
+        await original_message.edit(embed=embed, view=view)
+
 
     @app_commands.command(name="upvote")
     async def upvote_command(self, interaction: discord.Interaction) -> None:
         """
         Upvote this topic
         """
-        pass
+        new_votes = await up_down_vote(interaction=interaction, vote="up")
+        if new_votes is None:
+            return
+        await self.editOrignalMessage(interaction=interaction,
+                                      new_votes=new_votes)
+
 
     @app_commands.command(name="downvote")
     async def downvote_command(self, interaction: discord.Interaction) -> None:
         """
         Downvote this topic
         """
-        pass
+        new_votes = await up_down_vote(interaction=interaction, vote="down")
+        if new_votes is None:
+            return
+        await self.editOrignalMessage(interaction=interaction,
+                                      new_votes=new_votes)
 
     @app_commands.command(name="removevote")
     async def removevote_command(self, interaction: discord.Interaction) -> None:
         """
         Remove your vote on this topic
         """
-        pass
+        new_votes = await up_down_vote(interaction=interaction, vote="remove")
+        if new_votes is None:
+            return
+        await self.editOrignalMessage(interaction=interaction,
+                                      new_votes=new_votes)
+
+    @app_commands.command(name="resetinteraction")
+    async def reset_command(self, interaction: discord.Interaction) -> None:
+        """
+        User can call this if the interaction fails to resend it
+        :param interaction:
+        :return:
+        """
+        new_votes = await up_down_vote(interaction=interaction, vote="none")
+        if new_votes is None:
+            return
+        await self.editOrignalMessage(interaction=interaction, new_votes=new_votes)
 
     @commands.command()
     async def sync(self, ctx: Context, guilds: Greedy[Object], spec: Optional[Literal["here"]] = None) -> None:
