@@ -6,9 +6,6 @@ import discord
 from simplicity.json_handler import jLoad
 from clients.bot import CustomClient
 
-# TODO: create auto delete
-# TODO: create command line version i.e. !create topic_name topic_description etc
-# TODO: note that ephemeral messages can be sent to app commands
 
 # import config
 CONFIG = jLoad('static_files/config.json')
