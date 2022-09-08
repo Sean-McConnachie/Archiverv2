@@ -8,9 +8,9 @@
   },
 
   "application": {
-    "id": ,
-    "key": "",
-    "token": "",
+    "id": 951620842540892160,
+    "key": "819ea06648348894bc98e3e547340b8cccb2a88c4436a1a5924248c31780a617",
+    "token": "OTUxNjIwODQyNTQwODkyMTYw.YiqH-Q.BCzgFp6V9NsBTDygkVT33-_n-mQ",
     "prefix": "/",
     "cogs": [
       "cogs.help",
@@ -25,8 +25,8 @@
   },
 
   "server_data": {
-    "guild_id": 0,
-    "archiver_channel_id": 0,
+    "guild_id": 951620589297205288,
+    "archiver_channel_id": 951628135147929613,
 
     "create_archive_emoji": "\uD83D\uDD28",
     "search_archive_emoji": "\uD83D\uDDC3",

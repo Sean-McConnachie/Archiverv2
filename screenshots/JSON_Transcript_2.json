@@ -1,0 +1,31 @@
+[
+    {
+        "message_id": 1017536359394721834,
+        "sender_id": 355832318532780062,
+        "dt_sent": "08:46:13, 09/09/2022",
+        "is_tutor": true,
+        "message_content": "A comment",
+        "file_links": [],
+        "color": 12310707
+    },
+    {
+        "message_id": 1017536434950914188,
+        "sender_id": 355832318532780062,
+        "dt_sent": "08:46:31, 09/09/2022",
+        "is_tutor": true,
+        "message_content": "Maybe add an image?",
+        "file_links": [
+            "https://cdn.discordapp.com/attachments/1017536260627243089/1017536433927487518/DSC_0326.jpg"
+        ],
+        "color": 12310707
+    },
+    {
+        "message_id": 1017536511878639716,
+        "sender_id": 355832318532780062,
+        "dt_sent": "08:46:49, 09/09/2022",
+        "is_tutor": true,
+        "message_content": "Or a link? https://github.com/Sean-McConnachie/Archiverv2",
+        "file_links": [],
+        "color": 12310707
+    }
+]
