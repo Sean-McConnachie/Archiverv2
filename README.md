@@ -21,3 +21,6 @@ This bot was designed to allow users to create a type of forum within discord us
  - Any text typed into inputs should be checked for similarity, not equality
 
 # See screenshots folder for examples and UI
+
+© 2022 Sean McConnachie. All rights reserved
+
